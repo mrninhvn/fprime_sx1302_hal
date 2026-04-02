@@ -27,6 +27,9 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 #include <time.h>   /* clock_nanosleep */
 #include <math.h>   /* pow, ceil */
 
+#include "FreeRTOS.h"
+#include "task.h"
+
 #include "loragw_aux.h"
 #include "loragw_hal.h"
 
@@ -45,25 +48,26 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 /* --- PUBLIC FUNCTIONS DEFINITION ------------------------------------------ */
 
 void wait_us(unsigned long delay_us) {
-    struct timespec dly;
-    struct timespec rem;
+    vTaskDelay(delay_us / portTICK_PERIOD_MS / 1000 );
+    // struct timespec dly;
+    // struct timespec rem;
 
-    dly.tv_sec = delay_us / 1000000;
-    dly.tv_nsec = (delay_us % 1000000) * 1000;
+    // dly.tv_sec = delay_us / 1000000;
+    // dly.tv_nsec = (delay_us % 1000000) * 1000;
 
-    DEBUG_PRINTF("NOTE dly: %ld sec %ld ns\n", dly.tv_sec, dly.tv_nsec);
+    // DEBUG_PRINTF("NOTE dly: %ld sec %ld ns\n", dly.tv_sec, dly.tv_nsec);
 
-    while ((dly.tv_sec > 0) || (dly.tv_nsec > 1000)) {
-        /*
-        rem is set ONLY if clock_nanosleep is interrupted (eg. by a signal).
-        Must be zeroed each time or will get into an infinite loop after an IT.
-        */
-        rem.tv_sec = 0;
-        rem.tv_nsec = 0;
-        clock_nanosleep(CLOCK_MONOTONIC, 0, &dly, &rem);
-        DEBUG_PRINTF("NOTE remain: %ld sec %ld ns\n", rem.tv_sec, rem.tv_nsec);
-        dly = rem;
-    }
+    // while ((dly.tv_sec > 0) || (dly.tv_nsec > 1000)) {
+    //     /*
+    //     rem is set ONLY if clock_nanosleep is interrupted (eg. by a signal).
+    //     Must be zeroed each time or will get into an infinite loop after an IT.
+    //     */
+    //     rem.tv_sec = 0;
+    //     rem.tv_nsec = 0;
+    //     clock_nanosleep(CLOCK_MONOTONIC, 0, &dly, &rem);
+    //     DEBUG_PRINTF("NOTE remain: %ld sec %ld ns\n", rem.tv_sec, rem.tv_nsec);
+    //     dly = rem;
+    // }
 
     return;
 }
@@ -71,18 +75,19 @@ void wait_us(unsigned long delay_us) {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 void wait_ms(unsigned long delay_ms) {
-    struct timespec dly;
-    struct timespec rem;
+    vTaskDelay(delay_ms / portTICK_PERIOD_MS / 1000 );
+    // struct timespec dly;
+    // struct timespec rem;
 
-    dly.tv_sec = delay_ms / 1000;
-    dly.tv_nsec = ((long)delay_ms % 1000) * 1000000;
+    // dly.tv_sec = delay_ms / 1000;
+    // dly.tv_nsec = ((long)delay_ms % 1000) * 1000000;
 
-    DEBUG_PRINTF("NOTE dly: %ld sec %ld ns\n", dly.tv_sec, dly.tv_nsec);
+    // DEBUG_PRINTF("NOTE dly: %ld sec %ld ns\n", dly.tv_sec, dly.tv_nsec);
 
-    if((dly.tv_sec > 0) || ((dly.tv_sec == 0) && (dly.tv_nsec > 100000))) {
-        clock_nanosleep(CLOCK_MONOTONIC, 0, &dly, &rem);
-        DEBUG_PRINTF("NOTE remain: %ld sec %ld ns\n", rem.tv_sec, rem.tv_nsec);
-    }
+    // if((dly.tv_sec > 0) || ((dly.tv_sec == 0) && (dly.tv_nsec > 100000))) {
+    //     clock_nanosleep(CLOCK_MONOTONIC, 0, &dly, &rem);
+    //     DEBUG_PRINTF("NOTE remain: %ld sec %ld ns\n", rem.tv_sec, rem.tv_nsec);
+    // }
     return;
 }
 
