@@ -62,6 +62,8 @@ static void* _sx1261_com_target = NULL;
  *
 */
 int sx1261_com_open(lgw_com_type_t com_type, const char *com_path) {
+    return LGW_COM_ERROR;
+#if 0
     int spi_stat = LGW_COM_SUCCESS;
 
     _sx1261_com_type = com_type;
@@ -87,11 +89,14 @@ int sx1261_com_open(lgw_com_type_t com_type, const char *com_path) {
     }
 
     return LGW_COM_SUCCESS;
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int sx1261_com_close(void) {
+    return LGW_COM_ERROR;
+#if 0
     int spi_stat = LGW_COM_SUCCESS;
 
     switch(_sx1261_com_type) {
@@ -114,11 +119,14 @@ int sx1261_com_close(void) {
     _sx1261_com_target = NULL;
 
     return LGW_COM_SUCCESS;
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int sx1261_com_w(sx1261_op_code_t op_code, uint8_t *data, uint16_t size) {
+    return LGW_COM_ERROR;
+#if 0
     int com_stat;
 
     /* Check input parameters */
@@ -139,11 +147,14 @@ int sx1261_com_w(sx1261_op_code_t op_code, uint8_t *data, uint16_t size) {
     }
 
     return com_stat;
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int sx1261_com_r(sx1261_op_code_t op_code, uint8_t *data, uint16_t size) {
+    return LGW_COM_ERROR;
+#if 0
     int com_stat;
 
     /* Check input parameters */
@@ -164,11 +175,14 @@ int sx1261_com_r(sx1261_op_code_t op_code, uint8_t *data, uint16_t size) {
     }
 
     return com_stat;
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int sx1261_com_set_write_mode(lgw_com_write_mode_t write_mode) {
+    return LGW_COM_ERROR;
+#if 0
     int com_stat = LGW_COM_SUCCESS;
 
     switch (_sx1261_com_type) {
@@ -185,11 +199,14 @@ int sx1261_com_set_write_mode(lgw_com_write_mode_t write_mode) {
     }
 
     return com_stat;
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int sx1261_com_flush(void) {
+    return LGW_COM_ERROR;
+#if 0
     int com_stat = LGW_COM_SUCCESS;
 
     switch (_sx1261_com_type) {
@@ -206,6 +223,7 @@ int sx1261_com_flush(void) {
     }
 
     return com_stat;
+#endif
 }
 
 /* --- EOF ------------------------------------------------------------------ */

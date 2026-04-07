@@ -58,10 +58,10 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #if DEBUG_HAL == 1
-    #define DEBUG_MSG(str)                fprintf(stdout, str)
-    #define DEBUG_PRINTF(fmt, args...)    fprintf(stdout,"%s:%d: "fmt, __FUNCTION__, __LINE__, args)
-    #define DEBUG_ARRAY(a,b,c)            for(a=0;a<b;++a) fprintf(stdout,"%x.",c[a]);fprintf(stdout,"end\n")
-    #define CHECK_NULL(a)                 if(a==NULL){fprintf(stderr,"%s:%d: ERROR: NULL POINTER AS ARGUMENT\n", __FUNCTION__, __LINE__);return LGW_HAL_ERROR;}
+    #define DEBUG_MSG(str)                sx1303_log_debug("%s", str)
+    #define DEBUG_PRINTF(fmt, args...)    sx1303_log_debug(fmt, ##args)
+    #define DEBUG_ARRAY(a,b,c)            for(a=0;a<b;++a) DEBUG_PRINTF("%x.",c[a]);DEBUG_MSG("end\n")
+    #define CHECK_NULL(a)                 if(a==NULL){DEBUG_PRINTF("%s:%d: ERROR: NULL POINTER AS ARGUMENT\n", __FUNCTION__, __LINE__);return LGW_HAL_ERROR;}
 #else
     #define DEBUG_MSG(str)
     #define DEBUG_PRINTF(fmt, args...)
@@ -849,29 +849,29 @@ int lgw_start(void) {
     int i, err;
     uint8_t fw_version_agc;
 
-    DEBUG_PRINTF(" --- %s\n", "IN");
+    // DEBUG_PRINTF(" --- %s\n", "IN");
 
     if (CONTEXT_STARTED == true) {
-        DEBUG_MSG("Note: LoRa concentrator already started, restarting it now\n");
+        DEBUG_PRINTF("Note: LoRa concentrator already started, restarting it now\n");
     }
 
     err = lgw_connect(CONTEXT_COM_TYPE, CONTEXT_COM_PATH);
     if (err == LGW_REG_ERROR) {
-        DEBUG_MSG("ERROR: FAIL TO CONNECT BOARD\n");
+        DEBUG_PRINTF("ERROR: FAIL TO CONNECT BOARD\n");
         return LGW_HAL_ERROR;
     }
 
     /* Set all GPIOs to 0 */
     err = sx1302_set_gpio(0x00);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to set all GPIOs to 0\n");
+        DEBUG_PRINTF("ERROR: failed to set all GPIOs to 0\n");
         return LGW_HAL_ERROR;
     }
 
     /* Calibrate radios */
     err = sx1302_radio_calibrate(&CONTEXT_RF_CHAIN[0], CONTEXT_BOARD.clksrc, &CONTEXT_TX_GAIN_LUT[0]);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: radio calibration failed\n");
+        DEBUG_PRINTF("ERROR: radio calibration failed\n");
         return LGW_HAL_ERROR;
     }
 
@@ -881,7 +881,7 @@ int lgw_start(void) {
             /* Reset the radio */
             err = sx1302_radio_reset(i, CONTEXT_RF_CHAIN[i].type);
             if (err != LGW_REG_SUCCESS) {
-                printf("ERROR: failed to reset radio %d\n", i);
+                DEBUG_PRINTF("ERROR: failed to reset radio %d\n", i);
                 return LGW_HAL_ERROR;
             }
 
@@ -895,18 +895,18 @@ int lgw_start(void) {
                     err = sx125x_setup(i, CONTEXT_BOARD.clksrc, true, CONTEXT_RF_CHAIN[i].type, CONTEXT_RF_CHAIN[i].freq_hz);
                     break;
                 default:
-                    printf("ERROR: RADIO TYPE NOT SUPPORTED (RF_CHAIN %d)\n", i);
+                    DEBUG_PRINTF("ERROR: RADIO TYPE NOT SUPPORTED (RF_CHAIN %d)\n", i);
                     return LGW_HAL_ERROR;
             }
             if (err != LGW_REG_SUCCESS) {
-                printf("ERROR: failed to setup radio %d\n", i);
+                DEBUG_PRINTF("ERROR: failed to setup radio %d\n", i);
                 return LGW_HAL_ERROR;
             }
 
             /* Set radio mode */
             err = sx1302_radio_set_mode(i, CONTEXT_RF_CHAIN[i].type);
             if (err != LGW_REG_SUCCESS) {
-                printf("ERROR: failed to set mode for radio %d\n", i);
+                DEBUG_PRINTF("ERROR: failed to set mode for radio %d\n", i);
                 return LGW_HAL_ERROR;
             }
         }
@@ -915,54 +915,55 @@ int lgw_start(void) {
     /* Select the radio which provides the clock to the sx1302 */
     err = sx1302_radio_clock_select(CONTEXT_BOARD.clksrc);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to get clock from radio %u\n", CONTEXT_BOARD.clksrc);
+        DEBUG_PRINTF("ERROR: failed to get clock from radio %u\n", CONTEXT_BOARD.clksrc);
         return LGW_HAL_ERROR;
     }
 
+    DEBUG_PRINTF("Setting up sx1302_radio_host_ctrl\n");
     /* Release host control on radio (will be controlled by AGC) */
     err = sx1302_radio_host_ctrl(false);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to release control over radios\n");
+        DEBUG_PRINTF("ERROR: failed to release control over radios\n");
         return LGW_HAL_ERROR;
     }
 
     /* Basic initialization of the sx1302 */
     err = sx1302_init(&CONTEXT_FINE_TIMESTAMP);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to initialize SX1302\n");
+        DEBUG_PRINTF("ERROR: failed to initialize SX1302\n");
         return LGW_HAL_ERROR;
     }
 
     /* Configure PA/LNA LUTs */
     err = sx1302_pa_lna_lut_configure(&CONTEXT_BOARD);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to configure SX1302 PA/LNA LUT\n");
+        DEBUG_PRINTF("ERROR: failed to configure SX1302 PA/LNA LUT\n");
         return LGW_HAL_ERROR;
     }
 
     /* Configure Radio FE */
     err = sx1302_radio_fe_configure();
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to configure SX1302 radio frontend\n");
+        DEBUG_PRINTF("ERROR: failed to configure SX1302 radio frontend\n");
         return LGW_HAL_ERROR;
     }
 
     /* Configure the Channelizer */
     err = sx1302_channelizer_configure(CONTEXT_IF_CHAIN, false);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to configure SX1302 channelizer\n");
+        DEBUG_PRINTF("ERROR: failed to configure SX1302 channelizer\n");
         return LGW_HAL_ERROR;
     }
 
     /* configure LoRa 'multi-sf' modems */
     err = sx1302_lora_correlator_configure(CONTEXT_IF_CHAIN, &(CONTEXT_DEMOD));
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to configure SX1302 LoRa modem correlators\n");
+        DEBUG_PRINTF("ERROR: failed to configure SX1302 LoRa modem correlators\n");
         return LGW_HAL_ERROR;
     }
     err = sx1302_lora_modem_configure(CONTEXT_RF_CHAIN[0].freq_hz);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to configure SX1302 LoRa modems\n");
+        DEBUG_PRINTF("ERROR: failed to configure SX1302 LoRa modems\n");
         return LGW_HAL_ERROR;
     }
 
@@ -970,12 +971,12 @@ int lgw_start(void) {
     if (CONTEXT_IF_CHAIN[8].enable == true) {
         err = sx1302_lora_service_correlator_configure(&(CONTEXT_LORA_SERVICE));
         if (err != LGW_REG_SUCCESS) {
-            printf("ERROR: failed to configure SX1302 LoRa Service modem correlators\n");
+            DEBUG_PRINTF("ERROR: failed to configure SX1302 LoRa Service modem correlators\n");
             return LGW_HAL_ERROR;
         }
         err = sx1302_lora_service_modem_configure(&(CONTEXT_LORA_SERVICE), CONTEXT_RF_CHAIN[0].freq_hz);
         if (err != LGW_REG_SUCCESS) {
-            printf("ERROR: failed to configure SX1302 LoRa Service modem\n");
+            DEBUG_PRINTF("ERROR: failed to configure SX1302 LoRa Service modem\n");
             return LGW_HAL_ERROR;
         }
     }
@@ -984,7 +985,7 @@ int lgw_start(void) {
     if (CONTEXT_IF_CHAIN[9].enable == true) {
         err = sx1302_fsk_configure(&(CONTEXT_FSK));
         if (err != LGW_REG_SUCCESS) {
-            printf("ERROR: failed to configure SX1302 FSK modem\n");
+            DEBUG_PRINTF("ERROR: failed to configure SX1302 FSK modem\n");
             return LGW_HAL_ERROR;
         }
     }
@@ -992,72 +993,74 @@ int lgw_start(void) {
     /* configure syncword */
     err = sx1302_lora_syncword(CONTEXT_LWAN_PUBLIC, CONTEXT_LORA_SERVICE.datarate);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to configure SX1302 LoRa syncword\n");
+        DEBUG_PRINTF("ERROR: failed to configure SX1302 LoRa syncword\n");
         return LGW_HAL_ERROR;
     }
 
     /* enable demodulators - to be done before starting AGC/ARB */
     err = sx1302_modem_enable();
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to enable SX1302 modems\n");
+        DEBUG_PRINTF("ERROR: failed to enable SX1302 modems\n");
         return LGW_HAL_ERROR;
     }
 
     /* Load AGC firmware */
     switch (CONTEXT_RF_CHAIN[CONTEXT_BOARD.clksrc].type) {
         case LGW_RADIO_TYPE_SX1250:
-            DEBUG_MSG("Loading AGC fw for sx1250\n");
-            err = sx1302_agc_load_firmware(agc_firmware_sx1250);
+            DEBUG_PRINTF("Loading AGC fw for sx1250\n");
+            // err = sx1302_agc_load_firmware(agc_firmware_sx1250);
+            err = sx1302_agc_load_firmware(NULL);
             if (err != LGW_REG_SUCCESS) {
-                printf("ERROR: failed to load AGC firmware for sx1250\n");
+                DEBUG_PRINTF("ERROR: failed to load AGC firmware for sx1250\n");
                 return LGW_HAL_ERROR;
             }
             fw_version_agc = FW_VERSION_AGC_SX1250;
             break;
         case LGW_RADIO_TYPE_SX1255:
         case LGW_RADIO_TYPE_SX1257:
-            DEBUG_MSG("Loading AGC fw for sx125x\n");
-            err = sx1302_agc_load_firmware(agc_firmware_sx125x);
+            DEBUG_PRINTF("Loading AGC fw for sx125x\n");
+            // err = sx1302_agc_load_firmware(agc_firmware_sx125x);
             if (err != LGW_REG_SUCCESS) {
-                printf("ERROR: failed to load AGC firmware for sx125x\n");
+                DEBUG_PRINTF("ERROR: failed to load AGC firmware for sx125x\n");
                 return LGW_HAL_ERROR;
             }
             fw_version_agc = FW_VERSION_AGC_SX125X;
             break;
         default:
-            printf("ERROR: failed to load AGC firmware, radio type not supported (%d)\n", CONTEXT_RF_CHAIN[CONTEXT_BOARD.clksrc].type);
+            DEBUG_PRINTF("ERROR: failed to load AGC firmware, radio type not supported (%d)\n", CONTEXT_RF_CHAIN[CONTEXT_BOARD.clksrc].type);
             return LGW_HAL_ERROR;
     }
     err = sx1302_agc_start(fw_version_agc, CONTEXT_RF_CHAIN[CONTEXT_BOARD.clksrc].type, SX1302_AGC_RADIO_GAIN_AUTO, SX1302_AGC_RADIO_GAIN_AUTO, CONTEXT_BOARD.full_duplex, CONTEXT_SX1261.lbt_conf.enable);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to start AGC firmware\n");
+        DEBUG_MSG("ERROR: failed to start AGC firmware\n");
         return LGW_HAL_ERROR;
     }
 
     /* Load ARB firmware */
     DEBUG_MSG("Loading ARB fw\n");
-    err = sx1302_arb_load_firmware(arb_firmware);
+    // err = sx1302_arb_load_firmware(arb_firmware);
+    err = sx1302_arb_load_firmware(NULL);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to load ARB firmware\n");
+        DEBUG_MSG("ERROR: failed to load ARB firmware\n");
         return LGW_HAL_ERROR;
     }
     err = sx1302_arb_start(FW_VERSION_ARB, &CONTEXT_FINE_TIMESTAMP);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to start ARB firmware\n");
+        DEBUG_MSG("ERROR: failed to start ARB firmware\n");
         return LGW_HAL_ERROR;
     }
 
     /* static TX configuration */
     err = sx1302_tx_configure(CONTEXT_RF_CHAIN[CONTEXT_BOARD.clksrc].type);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to configure SX1302 TX path\n");
+        DEBUG_MSG("ERROR: failed to configure SX1302 TX path\n");
         return LGW_HAL_ERROR;
     }
 
     /* enable GPS */
     err = sx1302_gps_enable(true);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to enable GPS on sx1302\n");
+        DEBUG_MSG("ERROR: failed to enable GPS on sx1302\n");
         return LGW_HAL_ERROR;
     }
 
@@ -1089,6 +1092,7 @@ int lgw_start(void) {
     }
 #endif
 
+#if 0
     /* Configure the pseudo-random generator (For Debug) */
     dbg_init_random();
 
@@ -1143,45 +1147,48 @@ int lgw_start(void) {
             printf("INFO: AD5338R: Set DAC output to 0x%02X 0x%02X\n", (uint8_t)VOLTAGE2HEX_H(0), (uint8_t)VOLTAGE2HEX_L(0));
         }
     }
+#endif // TODO: I2C temperature sensor
 
+#if 0
     /* Connect to the external sx1261 for LBT or Spectral Scan */
     if (CONTEXT_SX1261.enable == true) {
         err = sx1261_connect(CONTEXT_COM_TYPE, (CONTEXT_COM_TYPE == LGW_COM_SPI) ? CONTEXT_SX1261.spi_path : NULL);
         if (err != LGW_REG_SUCCESS) {
-            printf("ERROR: failed to connect to the sx1261 radio (LBT/Spectral Scan)\n");
+            DEBUG_MSG("ERROR: failed to connect to the sx1261 radio (LBT/Spectral Scan)\n");
             return LGW_HAL_ERROR;
         }
 
         err = sx1261_load_pram();
         if (err != LGW_REG_SUCCESS) {
-            printf("ERROR: failed to patch sx1261 radio for LBT/Spectral Scan\n");
+            DEBUG_MSG("ERROR: failed to patch sx1261 radio for LBT/Spectral Scan\n");
             return LGW_HAL_ERROR;
         }
 
         err = sx1261_calibrate(CONTEXT_RF_CHAIN[0].freq_hz);
         if (err != LGW_REG_SUCCESS) {
-            printf("ERROR: failed to calibrate sx1261 radio\n");
+            DEBUG_MSG("ERROR: failed to calibrate sx1261 radio\n");
             return LGW_HAL_ERROR;
         }
 
         err = sx1261_setup();
         if (err != LGW_REG_SUCCESS) {
-            printf("ERROR: failed to setup sx1261 radio\n");
+            DEBUG_MSG("ERROR: failed to setup sx1261 radio\n");
             return LGW_HAL_ERROR;
         }
     }
+#endif // TODO: sx1261 for LBT/Spectral Scan
 
     /* Set CONFIG_DONE GPIO to 1 (turn on the corresponding LED) */
     err = sx1302_set_gpio(0x01);
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to set CONFIG_DONE GPIO\n");
+        DEBUG_MSG("ERROR: failed to set CONFIG_DONE GPIO\n");
         return LGW_HAL_ERROR;
     }
 
     /* set hal state */
     CONTEXT_STARTED = true;
 
-    DEBUG_PRINTF(" --- %s\n", "OUT");
+    // DEBUG_PRINTF(" --- %s\n", "OUT");
 
     return LGW_HAL_SUCCESS;
 }
@@ -1191,7 +1198,7 @@ int lgw_start(void) {
 int lgw_stop(void) {
     int i, x, err = LGW_HAL_SUCCESS;
 
-    DEBUG_PRINTF(" --- %s\n", "IN");
+    // DEBUG_PRINTF(" --- %s\n", "IN");
 
     if (CONTEXT_STARTED == false) {
         DEBUG_MSG("Note: LoRa concentrator was not started...\n");
@@ -1203,7 +1210,7 @@ int lgw_stop(void) {
         DEBUG_PRINTF("INFO: aborting TX on chain %u\n", i);
         x = lgw_abort_tx(i);
         if (x != LGW_HAL_SUCCESS) {
-            printf("WARNING: failed to get abort TX on chain %u\n", i);
+            DEBUG_PRINTF("WARNING: failed to get abort TX on chain %u\n", i);
             err = LGW_HAL_ERROR;
         }
     }
@@ -1214,15 +1221,17 @@ int lgw_stop(void) {
         log_file = NULL;
     }
 
-    DEBUG_MSG("INFO: Disconnecting\n");
+    DEBUG_PRINTF("INFO: Disconnecting\n");
     x = lgw_disconnect();
     if (x != LGW_HAL_SUCCESS) {
-        printf("ERROR: failed to disconnect concentrator\n");
+        DEBUG_PRINTF("ERROR: failed to disconnect concentrator\n");
         err = LGW_HAL_ERROR;
     }
 
     if (CONTEXT_COM_TYPE == LGW_COM_SPI) {
-        DEBUG_MSG("INFO: Closing I2C for temperature sensor\n");
+        DEBUG_PRINTF("INFO: Closing I2C for temperature sensor\n");
+        // TODO: close I2C temperature sensor
+#if 0
         x = i2c_linuxdev_close(ts_fd);
         if (x != 0) {
             printf("ERROR: failed to close I2C temperature sensor device (err=%i)\n", x);
@@ -1237,11 +1246,12 @@ int lgw_stop(void) {
                 err = LGW_HAL_ERROR;
             }
         }
+#endif
     }
 
     CONTEXT_STARTED = false;
 
-    DEBUG_PRINTF(" --- %s\n", "OUT");
+    // DEBUG_PRINTF(" --- %s\n", "OUT");
 
     return err;
 }
@@ -1257,7 +1267,7 @@ int lgw_receive(uint8_t max_pkt, struct lgw_pkt_rx_s *pkt_data) {
     /* performances variables */
     struct timeval tm;
 
-    DEBUG_PRINTF(" --- %s\n", "IN");
+    // DEBUG_PRINTF(" --- %s\n", "IN");
 
     /* Record function start time */
     _meas_time_start(&tm);
@@ -1329,7 +1339,7 @@ int lgw_receive(uint8_t max_pkt, struct lgw_pkt_rx_s *pkt_data) {
 
     _meas_time_stop(1, tm, __FUNCTION__);
 
-    DEBUG_PRINTF(" --- %s\n", "OUT");
+    // DEBUG_PRINTF(" --- %s\n", "OUT");
 
     return nb_pkt_found;
 }
@@ -1342,7 +1352,7 @@ int lgw_send(struct lgw_pkt_tx_s * pkt_data) {
     /* performances variables */
     struct timeval tm;
 
-    DEBUG_PRINTF(" --- %s\n", "IN");
+    // DEBUG_PRINTF(" --- %s\n", "IN");
 
     /* Record function start time */
     _meas_time_start(&tm);
@@ -1476,7 +1486,7 @@ int lgw_send(struct lgw_pkt_tx_s * pkt_data) {
         }
     }
 
-    DEBUG_PRINTF(" --- %s\n", "OUT");
+    // DEBUG_PRINTF(" --- %s\n", "OUT");
 
     if (CONTEXT_SX1261.lbt_conf.enable == true && lbt_tx_allowed == false) {
         return LGW_LBT_NOT_ALLOWED;
@@ -1488,7 +1498,7 @@ int lgw_send(struct lgw_pkt_tx_s * pkt_data) {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int lgw_status(uint8_t rf_chain, uint8_t select, uint8_t *code) {
-    DEBUG_PRINTF(" --- %s\n", "IN");
+    // DEBUG_PRINTF(" --- %s\n", "IN");
 
     /* check input variables */
     CHECK_NULL(code);
@@ -1515,7 +1525,7 @@ int lgw_status(uint8_t rf_chain, uint8_t select, uint8_t *code) {
         return LGW_HAL_ERROR;
     }
 
-    DEBUG_PRINTF(" --- %s\n", "OUT");
+    // DEBUG_PRINTF(" --- %s\n", "OUT");
 
     //DEBUG_PRINTF("INFO: STATUS %u\n", *code);
     return LGW_HAL_SUCCESS;
@@ -1526,7 +1536,7 @@ int lgw_status(uint8_t rf_chain, uint8_t select, uint8_t *code) {
 int lgw_abort_tx(uint8_t rf_chain) {
     int err;
 
-    DEBUG_PRINTF(" --- %s\n", "IN");
+    // DEBUG_PRINTF(" --- %s\n", "IN");
 
     /* check input variables */
     if (rf_chain >= LGW_RF_CHAIN_NB) {
@@ -1537,7 +1547,7 @@ int lgw_abort_tx(uint8_t rf_chain) {
     /* Abort current TX */
     err = sx1302_tx_abort(rf_chain);
 
-    DEBUG_PRINTF(" --- %s\n", "OUT");
+    // DEBUG_PRINTF(" --- %s\n", "OUT");
 
     return err;
 }
@@ -1545,13 +1555,13 @@ int lgw_abort_tx(uint8_t rf_chain) {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int lgw_get_trigcnt(uint32_t* trig_cnt_us) {
-    DEBUG_PRINTF(" --- %s\n", "IN");
+    // DEBUG_PRINTF(" --- %s\n", "IN");
 
     CHECK_NULL(trig_cnt_us);
 
     *trig_cnt_us = sx1302_timestamp_counter(true);
 
-    DEBUG_PRINTF(" --- %s\n", "OUT");
+    // DEBUG_PRINTF(" --- %s\n", "OUT");
 
     return LGW_HAL_SUCCESS;
 }
@@ -1559,13 +1569,13 @@ int lgw_get_trigcnt(uint32_t* trig_cnt_us) {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int lgw_get_instcnt(uint32_t* inst_cnt_us) {
-    DEBUG_PRINTF(" --- %s\n", "IN");
+    // DEBUG_PRINTF(" --- %s\n", "IN");
 
     CHECK_NULL(inst_cnt_us);
 
     *inst_cnt_us = sx1302_timestamp_counter(false);
 
-    DEBUG_PRINTF(" --- %s\n", "OUT");
+    // DEBUG_PRINTF(" --- %s\n", "OUT");
 
     return LGW_HAL_SUCCESS;
 }
@@ -1573,7 +1583,7 @@ int lgw_get_instcnt(uint32_t* inst_cnt_us) {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int lgw_get_eui(uint64_t* eui) {
-    DEBUG_PRINTF(" --- %s\n", "IN");
+    // DEBUG_PRINTF(" --- %s\n", "IN");
 
     CHECK_NULL(eui);
 
@@ -1581,7 +1591,7 @@ int lgw_get_eui(uint64_t* eui) {
         return LGW_HAL_ERROR;
     }
 
-    DEBUG_PRINTF(" --- %s\n", "OUT");
+    // DEBUG_PRINTF(" --- %s\n", "OUT");
 
     return LGW_HAL_SUCCESS;
 }
@@ -1591,7 +1601,7 @@ int lgw_get_eui(uint64_t* eui) {
 int lgw_get_temperature(float* temperature) {
     int err = LGW_HAL_ERROR;
 
-    DEBUG_PRINTF(" --- %s\n", "IN");
+    // DEBUG_PRINTF(" --- %s\n", "IN");
 
     CHECK_NULL(temperature);
 
@@ -1607,7 +1617,7 @@ int lgw_get_temperature(float* temperature) {
             break;
     }
 
-    DEBUG_PRINTF(" --- %s\n", "OUT");
+    // DEBUG_PRINTF(" --- %s\n", "OUT");
 
     return err;
 }
@@ -1624,7 +1634,7 @@ uint32_t lgw_time_on_air(const struct lgw_pkt_tx_s *packet) {
     double t_fsk;
     uint32_t toa_ms, toa_us;
 
-    DEBUG_PRINTF(" --- %s\n", "IN");
+    // DEBUG_PRINTF(" --- %s\n", "IN");
 
     if (packet == NULL) {
         printf("ERROR: Failed to compute time on air, wrong parameter\n");
@@ -1652,7 +1662,7 @@ uint32_t lgw_time_on_air(const struct lgw_pkt_tx_s *packet) {
         printf("ERROR: Cannot compute time on air for this packet, unsupported modulation (0x%02X)\n", packet->modulation);
     }
 
-    DEBUG_PRINTF(" --- %s\n", "OUT");
+    // DEBUG_PRINTF(" --- %s\n", "OUT");
 
     return toa_ms;
 }

@@ -31,9 +31,9 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #if DEBUG_COM == 1
-    #define DEBUG_MSG(str)                fprintf(stdout, str)
-    #define DEBUG_PRINTF(fmt, args...)    fprintf(stdout,"%s:%d: "fmt, __FUNCTION__, __LINE__, args)
-    #define CHECK_NULL(a)                if(a==NULL){fprintf(stderr,"%s:%d: ERROR: NULL POINTER AS ARGUMENT\n", __FUNCTION__, __LINE__);return LGW_COM_ERROR;}
+    #define DEBUG_MSG(str)               sx1303_log_debug("%s", str)
+    #define DEBUG_PRINTF(fmt, args...)   sx1303_log_debug(fmt, ##args)
+    #define CHECK_NULL(a)                if(a==NULL){DEBUG_PRINTF("%s:%d: ERROR: NULL POINTER AS ARGUMENT\n", __FUNCTION__, __LINE__);return LGW_COM_ERROR;}
 #else
     #define DEBUG_MSG(str)
     #define DEBUG_PRINTF(fmt, args...)
@@ -65,12 +65,12 @@ int lgw_com_open(lgw_com_type_t com_type, const char * com_path) {
     /* Check input parameters */
     CHECK_NULL(com_path);
     if ((com_type != LGW_COM_SPI) && (com_type != LGW_COM_USB)) {
-        DEBUG_MSG("ERROR: COMMUNICATION INTERFACE TYPE IS NOT SUPPORTED\n");
+        DEBUG_PRINTF("ERROR: COMMUNICATION INTERFACE TYPE IS NOT SUPPORTED\n");
         return LGW_COM_ERROR;
     }
 
     if (_lgw_com_target != NULL) {
-        DEBUG_MSG("WARNING: CONCENTRATOR WAS ALREADY CONNECTED\n");
+        DEBUG_PRINTF("WARNING: CONCENTRATOR WAS ALREADY CONNECTED\n");
         lgw_com_close();
     }
 
@@ -79,11 +79,11 @@ int lgw_com_open(lgw_com_type_t com_type, const char * com_path) {
 
     switch (com_type) {
         case LGW_COM_SPI:
-            printf("Opening SPI communication interface\n");
+            DEBUG_PRINTF("Opening SPI communication interface\n");
             com_stat = lgw_spi_open(com_path, &_lgw_com_target);
             break;
         case LGW_COM_USB:
-            printf("Opening USB communication interface\n");
+            DEBUG_PRINTF("Opening USB communication interface\n");
             com_stat = lgw_usb_open(com_path, &_lgw_com_target);
             break;
         default:
@@ -162,6 +162,7 @@ int lgw_com_w(uint8_t spi_mux_target, uint16_t address, uint8_t data) {
 
 /* Simple read */
 int lgw_com_r(uint8_t spi_mux_target, uint16_t address, uint8_t *data) {
+    DEBUG_PRINTF("%s: spi_mux_target=%u, address=0x%04X", __func__, spi_mux_target, address);
     int com_stat;
     /* performances variables */
     struct timeval tm;
@@ -181,7 +182,7 @@ int lgw_com_r(uint8_t spi_mux_target, uint16_t address, uint8_t *data) {
             com_stat = lgw_usb_r(_lgw_com_target, spi_mux_target, address, data);
             break;
         default:
-            printf("ERROR(%s:%d): wrong communication type (SHOULD NOT HAPPEN)\n", __FUNCTION__, __LINE__);
+            DEBUG_PRINTF("ERROR(%s:%d): wrong communication type (SHOULD NOT HAPPEN)\n", __FUNCTION__, __LINE__);
             com_stat = LGW_COM_ERROR;
             break;
     }

@@ -26,7 +26,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 #include <fcntl.h>      /* open */
 #include <string.h>     /* strncmp */
 #include <errno.h>      /* Error number definitions */
-#include <termios.h>    /* POSIX terminal control definitions */
+// #include <termios.h>    /* POSIX terminal control definitions */
 
 #include "loragw_com.h"
 #include "loragw_usb.h"
@@ -63,6 +63,9 @@ static uint8_t _lgw_spi_req_nb = 0;
 /* --- PRIVATE FUNCTIONS DEFINITION ----------------------------------------- */
 
 int set_interface_attribs_linux(int fd, int speed) {
+    return LGW_USB_ERROR;
+    /* This function is not implemented in this port */
+#if 0
     struct termios tty;
 
     memset(&tty, 0, sizeof tty);
@@ -101,12 +104,16 @@ int set_interface_attribs_linux(int fd, int speed) {
     }
 
     return LGW_USB_SUCCESS;
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 /* configure serial interface to be read blocking or not*/
 int set_blocking_linux(int fd, bool blocking) {
+    return LGW_USB_ERROR;
+    /* This function is not implemented in this port */
+#if 0
     struct termios tty;
 
     memset(&tty, 0, sizeof tty);
@@ -127,12 +134,16 @@ int set_blocking_linux(int fd, bool blocking) {
     }
 
     return LGW_USB_SUCCESS;
+#endif
 }
 
 /* -------------------------------------------------------------------------- */
 /* --- PUBLIC FUNCTIONS DEFINITION ------------------------------------------ */
 
 int lgw_usb_open(const char * com_path, void **com_target_ptr) {
+    return LGW_USB_ERROR;
+    /* This function is not implemented in this port */
+#if 0
     int *usb_device = NULL;
     char portname[50];
     int x;
@@ -225,12 +236,16 @@ int lgw_usb_open(const char * com_path, void **com_target_ptr) {
 
     free(usb_device);
     return LGW_USB_ERROR;
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 /* SPI release */
 int lgw_usb_close(void *com_target) {
+    return LGW_USB_ERROR;
+    /* This function is not implemented in this port */
+#if 0
     int usb_device;
     int x, err = LGW_USB_SUCCESS;
 
@@ -267,6 +282,7 @@ int lgw_usb_close(void *com_target) {
         DEBUG_MSG("Note: USB port closed\n");
         return LGW_USB_SUCCESS;
     }
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -287,6 +303,7 @@ int lgw_usb_r(void *com_target, uint8_t spi_mux_target, uint16_t address, uint8_
 
 /* Single Byte Read-Modify-Write */
 int lgw_usb_rmw(void *com_target, uint16_t address, uint8_t offs, uint8_t leng, uint8_t data) {
+#if 0
     int usb_device;
     uint8_t command_size = 6;
     uint8_t in_out_buf[command_size];
@@ -322,12 +339,17 @@ int lgw_usb_rmw(void *com_target, uint16_t address, uint8_t offs, uint8_t leng, 
         DEBUG_MSG("Note: USB write success\n");
         return 0;
     }
+#endif
+    return LGW_USB_ERROR;
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 /* Burst (multiple-byte) write */
 int lgw_usb_wb(void *com_target, uint8_t spi_mux_target, uint16_t address, const uint8_t *data, uint16_t size) {
+    return LGW_USB_ERROR;
+    /* This function is not implemented in this port */
+#if 0
     int usb_device;
     uint16_t command_size = size + 8; /* 5 bytes: REQ metadata (MCU), 3 bytes: SPI header (SX1302) */
     uint8_t in_out_buf[command_size];
@@ -370,12 +392,16 @@ int lgw_usb_wb(void *com_target, uint8_t spi_mux_target, uint16_t address, const
         DEBUG_MSG("Note: USB write burst success\n");
         return 0;
     }
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 /* Burst (multiple-byte) read */
 int lgw_usb_rb(void *com_target, uint8_t spi_mux_target, uint16_t address, uint8_t *data, uint16_t size) {
+    return LGW_USB_ERROR;
+    /* This function is not implemented in this port */
+#if 0
     int usb_device;
     uint16_t command_size = size + 9;  /* 5 bytes: REQ metadata (MCU), 3 bytes: SPI header (SX1302), 1 byte: dummy*/
     uint8_t in_out_buf[command_size];
@@ -421,11 +447,15 @@ int lgw_usb_rb(void *com_target, uint8_t spi_mux_target, uint16_t address, uint8
         memcpy(data, in_out_buf + 9, size); /* remove the first bytes, keep only the payload */
         return 0;
     }
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int lgw_usb_set_write_mode(lgw_com_write_mode_t write_mode) {
+    return LGW_USB_ERROR;
+    /* This function is not implemented in this port */
+#if 0
     if (write_mode >= LGW_COM_WRITE_MODE_UNKNOWN) {
         printf("ERROR: wrong write mode\n");
         return -1;
@@ -436,11 +466,15 @@ int lgw_usb_set_write_mode(lgw_com_write_mode_t write_mode) {
     _lgw_write_mode = write_mode;
 
     return 0;
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int lgw_usb_flush(void *com_target) {
+    return LGW_USB_ERROR;
+    /* This function is not implemented in this port */
+#if 0
     int usb_device;
     int a = 0;
 
@@ -471,6 +505,7 @@ int lgw_usb_flush(void *com_target) {
     _lgw_spi_req_nb = 0;
 
     return a;
+#endif
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -482,6 +517,9 @@ uint16_t lgw_usb_chunk_size(void) {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 int lgw_usb_get_temperature(void *com_target, float * temperature) {
+    return LGW_USB_ERROR;
+    /* This function is not implemented in this port */
+#if 0
     int usb_device;
     s_status mcu_status;
 
@@ -500,6 +538,7 @@ int lgw_usb_get_temperature(void *com_target, float * temperature) {
     *temperature = mcu_status.temperature;
 
     return 0;
+#endif
 }
 
 /* --- EOF ------------------------------------------------------------------ */

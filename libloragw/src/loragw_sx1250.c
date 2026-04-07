@@ -32,9 +32,10 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #if DEBUG_RAD == 1
-    #define DEBUG_MSG(str)                fprintf(stdout, str)
-    #define DEBUG_PRINTF(fmt, args...)    fprintf(stdout,"%s:%d: "fmt, __FUNCTION__, __LINE__, args)
-    #define CHECK_NULL(a)                if(a==NULL){fprintf(stderr,"%s:%d: ERROR: NULL POINTER AS ARGUMENT\n", __FUNCTION__, __LINE__);return LGW_REG_ERROR;}
+    #define DEBUG_MSG(str)                sx1303_log_debug("%s", str)
+    #define DEBUG_PRINTF(fmt, args...)    sx1303_log_debug(fmt, ##args)
+    #define DEBUG_ARRAY(a,b,c)            for(a=0;a<b;++a) DEBUG_PRINTF("%x.",c[a]);DEBUG_MSG("end\n")
+    #define CHECK_NULL(a)                 if(a==NULL){DEBUG_PRINTF("%s:%d: ERROR: NULL POINTER AS ARGUMENT\n", __FUNCTION__, __LINE__);return LGW_HAL_ERROR;}
 #else
     #define DEBUG_MSG(str)
     #define DEBUG_PRINTF(fmt, args...)
@@ -113,7 +114,7 @@ int sx1250_calibrate(uint8_t rf_chain, uint32_t freq_hz) {
         buff[0] = 0xE1;
         buff[1] = 0xE9;
     } else {
-        printf("ERROR: failed to calibrate sx1250 radio, frequency range not supported (%u)\n", freq_hz);
+        DEBUG_PRINTF("ERROR: failed to calibrate sx1250 radio, frequency range not supported (%u)\n", freq_hz);
         return LGW_REG_ERROR;
     }
     err |= sx1250_reg_w(CALIBRATE_IMAGE, buff, 2, rf_chain);
@@ -126,7 +127,7 @@ int sx1250_calibrate(uint8_t rf_chain, uint32_t freq_hz) {
     buff[2] = 0x00;
     err |= sx1250_reg_r(GET_DEVICE_ERRORS, buff, 3, rf_chain);
     if (TAKE_N_BITS_FROM(buff[2], 4, 1) != 0) {
-        printf("ERROR: sx1250 Image Calibration Error\n");
+        DEBUG_PRINTF("ERROR: sx1250 Image Calibration Error\n");
         return LGW_REG_ERROR;
     }
 
@@ -149,7 +150,7 @@ int sx1250_setup(uint8_t rf_chain, uint32_t freq_hz, bool single_input_mode) {
     buff[0] = 0x00;
     err |= sx1250_reg_r(GET_STATUS, buff, 1, rf_chain);
     if ((uint8_t)(TAKE_N_BITS_FROM(buff[0], 4, 3)) != 0x02) {
-        printf("ERROR: Failed to set SX1250_%u in STANDBY_RC mode\n", rf_chain);
+        DEBUG_PRINTF("ERROR: Failed to set SX1250_%u in STANDBY_RC mode\n", rf_chain);
         return LGW_REG_ERROR;
     }
 
@@ -167,7 +168,7 @@ int sx1250_setup(uint8_t rf_chain, uint32_t freq_hz, bool single_input_mode) {
     buff[0] = 0x00;
     err |= sx1250_reg_r(GET_STATUS, buff, 1, rf_chain);
     if ((uint8_t)(TAKE_N_BITS_FROM(buff[0], 4, 3)) != 0x03) {
-        printf("ERROR: Failed to set SX1250_%u in STANDBY_XOSC mode\n", rf_chain);
+        DEBUG_PRINTF("ERROR: Failed to set SX1250_%u in STANDBY_XOSC mode\n", rf_chain);
         return LGW_REG_ERROR;
     }
 
@@ -237,7 +238,7 @@ int sx1250_setup(uint8_t rf_chain, uint32_t freq_hz, bool single_input_mode) {
 
     /* Select single input or differential input mode */
     if (single_input_mode == true) {
-        printf("INFO: Configuring SX1250_%u in single input mode\n", rf_chain);
+        DEBUG_PRINTF("INFO: Configuring SX1250_%u in single input mode\n", rf_chain);
         buff[0] = 0x08;
         buff[1] = 0xE2;
         buff[2] = 0x0D;
@@ -251,7 +252,7 @@ int sx1250_setup(uint8_t rf_chain, uint32_t freq_hz, bool single_input_mode) {
 
     /* Check if something went wrong */
     if (err != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to setup SX1250_%u radio\n", rf_chain);
+        DEBUG_PRINTF("ERROR: failed to setup SX1250_%u radio\n", rf_chain);
         return LGW_REG_ERROR;
     }
 

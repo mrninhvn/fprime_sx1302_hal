@@ -30,9 +30,9 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #if DEBUG_REG == 1
-    #define DEBUG_MSG(str)              fprintf(stdout, str)
-    #define DEBUG_PRINTF(fmt, args...)  fprintf(stdout,"%s:%d: "fmt, __FUNCTION__, __LINE__, args)
-    #define CHECK_NULL(a)               if(a==NULL){fprintf(stderr,"%s:%d: ERROR: NULL POINTER AS ARGUMENT\n", __FUNCTION__, __LINE__);return LGW_REG_ERROR;}
+    #define DEBUG_MSG(str)              sx1303_log_debug("%s", str)
+    #define DEBUG_PRINTF(fmt, args...)  sx1303_log_debug(fmt, ##args)
+    #define CHECK_NULL(a)               if(a==NULL){DEBUG_PRINTF("%s:%d: ERROR: NULL POINTER AS ARGUMENT\n", __FUNCTION__, __LINE__);return LGW_REG_ERROR;}
 #else
     #define DEBUG_MSG(str)
     #define DEBUG_PRINTF(fmt, args...)
@@ -1165,6 +1165,7 @@ int reg_r(uint8_t spi_mux_target, struct lgw_reg_s r, int32_t *reg_value) {
 
 /* Concentrator connect */
 int lgw_connect(const lgw_com_type_t com_type, const char * com_path) {
+    DEBUG_PRINTF("%s: com_type=%d, com_path=%s", __func__, com_type, com_path);
     int com_stat = LGW_COM_SUCCESS;
     uint8_t u = 0;
 
@@ -1187,9 +1188,9 @@ int lgw_connect(const lgw_com_type_t com_type, const char * com_path) {
         DEBUG_MSG("ERROR READING CHIP VERSION REGISTER\n");
         return LGW_REG_ERROR;
     }
-    printf("Note: chip version is 0x%02X (v%u.%u)\n", u, (u >> 4) & 0x0F, u & 0x0F) ;
+    DEBUG_PRINTF("Note: chip version is 0x%02X (v%u.%u)\n", u, (u >> 4) & 0x0F, u & 0x0F) ;
 
-    DEBUG_MSG("Note: success connecting the concentrator\n");
+    DEBUG_PRINTF("Note: success connecting the concentrator\n");
     return LGW_REG_SUCCESS;
 }
 
