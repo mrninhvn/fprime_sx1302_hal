@@ -58,7 +58,8 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 #if DEBUG_HAL == 1
-    #define DEBUG_MSG(str)                sx1303_log_debug("%s", str)
+    // #define DEBUG_MSG(str)                sx1303_log_debug("%s", str)
+    #define DEBUG_MSG
     #define DEBUG_PRINTF(fmt, args...)    sx1303_log_debug(fmt, ##args)
     #define DEBUG_ARRAY(a,b,c)            for(a=0;a<b;++a) DEBUG_PRINTF("%x.",c[a]);DEBUG_MSG("end\n")
     #define CHECK_NULL(a)                 if(a==NULL){DEBUG_PRINTF("%s:%d: ERROR: NULL POINTER AS ARGUMENT\n", __FUNCTION__, __LINE__);return LGW_HAL_ERROR;}
@@ -657,9 +658,11 @@ int lgw_rxif_setconf(uint8_t if_chain, struct lgw_conf_rxif_s * conf) {
             CONTEXT_IF_CHAIN[if_chain].rf_chain = conf->rf_chain;
             CONTEXT_IF_CHAIN[if_chain].freq_hz = conf->freq_hz;
 
+            /*
             DEBUG_PRINTF("Note: LoRa 'multi' if_chain %d configuration; en:%d freq:%d\n",   if_chain,
                                                                                             CONTEXT_IF_CHAIN[if_chain].enable,
                                                                                             CONTEXT_IF_CHAIN[if_chain].freq_hz);
+            */
             break;
 
         case IF_FSK_STD:
@@ -919,7 +922,7 @@ int lgw_start(void) {
         return LGW_HAL_ERROR;
     }
 
-    DEBUG_PRINTF("Setting up sx1302_radio_host_ctrl\n");
+    // DEBUG_PRINTF("Setting up sx1302_radio_host_ctrl\n");
     /* Release host control on radio (will be controlled by AGC) */
     err = sx1302_radio_host_ctrl(false);
     if (err != LGW_REG_SUCCESS) {
@@ -1229,7 +1232,7 @@ int lgw_stop(void) {
     }
 
     if (CONTEXT_COM_TYPE == LGW_COM_SPI) {
-        DEBUG_PRINTF("INFO: Closing I2C for temperature sensor\n");
+        // DEBUG_PRINTF("INFO: Closing I2C for temperature sensor\n");
         // TODO: close I2C temperature sensor
 #if 0
         x = i2c_linuxdev_close(ts_fd);
@@ -1263,7 +1266,7 @@ int lgw_receive(uint8_t max_pkt, struct lgw_pkt_rx_s *pkt_data) {
     uint8_t nb_pkt_fetched = 0;
     uint8_t nb_pkt_found = 0;
     uint8_t nb_pkt_left = 0;
-    float current_temperature = 0.0, rssi_temperature_offset = 0.0;
+    float current_temperature = 25.0, rssi_temperature_offset = 0.0;
     /* performances variables */
     struct timeval tm;
 
@@ -1275,7 +1278,7 @@ int lgw_receive(uint8_t max_pkt, struct lgw_pkt_rx_s *pkt_data) {
     /* Get packets from SX1302, if any */
     res = sx1302_fetch(&nb_pkt_fetched);
     if (res != LGW_REG_SUCCESS) {
-        printf("ERROR: failed to fetch packets from SX1302\n");
+        DEBUG_PRINTF("ERROR: failed to fetch packets from SX1302\n");
         return LGW_HAL_ERROR;
     }
 
@@ -1293,25 +1296,27 @@ int lgw_receive(uint8_t max_pkt, struct lgw_pkt_rx_s *pkt_data) {
     }
     if (nb_pkt_fetched > max_pkt) {
         nb_pkt_left = nb_pkt_fetched - max_pkt;
-        printf("WARNING: not enough space allocated, fetched %d packet(s), %d will be left in RX buffer\n", nb_pkt_fetched, nb_pkt_left);
+        DEBUG_PRINTF("WARNING: not enough space allocated, fetched %d packet(s), %d will be left in RX buffer\n", nb_pkt_fetched, nb_pkt_left);
     }
 
     /* Apply RSSI temperature compensation */
+    /* TODO: VSPC - add support for external temperature sensor over I2C and use it here
     res = lgw_get_temperature(&current_temperature);
     if (res != LGW_I2C_SUCCESS) {
-        printf("ERROR: failed to get current temperature\n");
+        DEBUG_PRINTF("ERROR: failed to get current temperature\n");
         return LGW_HAL_ERROR;
     }
+    */
 
     /* Iterate on the RX buffer to get parsed packets */
     for (nb_pkt_found = 0; nb_pkt_found < ((nb_pkt_fetched <= max_pkt) ? nb_pkt_fetched : max_pkt); nb_pkt_found++) {
         /* Get packet and move to next one */
         res = sx1302_parse(&lgw_context, &pkt_data[nb_pkt_found]);
         if (res == LGW_REG_WARNING) {
-            printf("WARNING: parsing error on packet %d, discarding fetched packets\n", nb_pkt_found);
+            DEBUG_PRINTF("WARNING: parsing error on packet %d, discarding fetched packets\n", nb_pkt_found);
             return LGW_HAL_SUCCESS;
         } else if (res == LGW_REG_ERROR) {
-            printf("ERROR: fatal parsing error on packet %d, aborting...\n", nb_pkt_found);
+            DEBUG_PRINTF("ERROR: fatal parsing error on packet %d, aborting...\n", nb_pkt_found);
             return LGW_HAL_ERROR;
         }
 
@@ -1331,7 +1336,7 @@ int lgw_receive(uint8_t max_pkt, struct lgw_pkt_rx_s *pkt_data) {
     if ((nb_pkt_found > 0) && (CONTEXT_FINE_TIMESTAMP.enable == true)) {
         res = merge_packets(pkt_data, &nb_pkt_found);
         if (res != 0) {
-            printf("WARNING: failed to remove duplicated packets\n");
+            DEBUG_MSG("WARNING: failed to remove duplicated packets\n");
         }
 
         DEBUG_PRINTF("INFO: nb pkt found:%u (after de-duplicating)\n", nb_pkt_found);
