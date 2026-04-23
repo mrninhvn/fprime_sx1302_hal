@@ -27,9 +27,6 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 #include <time.h>   /* clock_nanosleep */
 #include <math.h>   /* pow, ceil */
 
-#include "FreeRTOS.h"
-#include "task.h"
-
 #include "loragw_aux.h"
 #include "loragw_hal.h"
 
@@ -48,8 +45,7 @@ License: Revised BSD License, see LICENSE.TXT file include in the project
 /* --- PUBLIC FUNCTIONS DEFINITION ------------------------------------------ */
 
 void wait_us(unsigned long delay_us) {
-    // TODO: use F-prime delay.
-    vTaskDelay(delay_us / portTICK_PERIOD_MS / 1000 );
+    sx1303_delay_us(delay_us);
 #if 0
     struct timespec dly;
     struct timespec rem;
